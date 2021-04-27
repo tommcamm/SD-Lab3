@@ -13,12 +13,17 @@ public class Corso {
     @Column(nullable = false)
     private final String corsoDiLaurea;
 
-    @OneToMany
+    @OneToMany(cascade = {CascadeType.ALL})
     private final List<Esame> esami;
 
     public Corso(String corsoDiLaurea, List<Esame> esami) {
         this.corsoDiLaurea = corsoDiLaurea;
         this.esami = esami;
+    }
+
+    public Corso(String nomeCorso) {
+        this.corsoDiLaurea = nomeCorso;
+        this.esami = new ArrayList<>();
     }
 
     public Corso() {
