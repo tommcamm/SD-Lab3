@@ -6,13 +6,7 @@ import java.util.Objects;
 @Entity
 public class Esame {
 
-    // Per questo esercizio
-
     @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
-
-    @Column(nullable = false)
     String nome;
 
     @Column(nullable = false)
@@ -30,11 +24,31 @@ public class Esame {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Esame esame = (Esame) o;
-        return id.equals(esame.id);
+        return nome.equals(esame.nome);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(id);
+        return Objects.hash(nome);
+    }
+
+    @Override
+    public String toString() {
+        return "Esame{" +
+                "nome='" + nome + '\'' +
+                ", cfu=" + cfu +
+                '}';
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public int getCfu() {
+        return cfu;
+    }
+
+    public void setCfu(int cfu) {
+        this.cfu = cfu;
     }
 }

@@ -6,11 +6,8 @@ import java.util.List;
 
 @Entity
 public class Corso {
-    @Id
-    @GeneratedValue(strategy = GenerationType.AUTO)
-    private Long id;
 
-    @Column(nullable = false)
+    @Id
     private final String corsoDiLaurea;
 
     @OneToMany(cascade = {CascadeType.ALL})
@@ -30,4 +27,36 @@ public class Corso {
         this.corsoDiLaurea = "";
         this.esami = new ArrayList<>();
     }
+
+    @Override
+    public String toString() {
+        return "Corso{" +
+                "corsoDiLaurea='" + corsoDiLaurea + '\'' +
+                ", esami=" + esami +
+                '}';
+    }
+
+    public String getCorsoDiLaurea() {
+        return corsoDiLaurea;
+    }
+
+    public List<Esame> getEsami() {
+        return esami;
+    }
+
+    public void aggiungiEsame(Esame e) {
+        // TODO: make a proper check that Esame != null
+        assert(e!=null);
+        esami.add(e);
+    }
+
+    public void modificaEsame(Esame e, int indice){
+        esami.set(indice, e);
+    }
+
+    public void eliminaEsame(Esame e) {
+        esami.remove(e);
+    }
+
+
 }

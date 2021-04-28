@@ -5,6 +5,6 @@ import org.springframework.data.repository.CrudRepository;
 
 import java.util.Optional;
 
-public interface CorsoRepository extends CrudRepository<Corso, Long> {
+public interface CorsoRepository extends CrudRepository<Corso, String> {
 
 }
