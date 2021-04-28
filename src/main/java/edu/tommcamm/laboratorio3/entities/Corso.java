@@ -3,6 +3,7 @@ package edu.tommcamm.laboratorio3.entities;
 import javax.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 @Entity
 public class Corso {
@@ -50,13 +51,24 @@ public class Corso {
         esami.add(e);
     }
 
-    public void modificaEsame(Esame e, int indice){
-        esami.set(indice, e);
+    public void modificaEsame(Esame e){
+        esami.set(esami.indexOf(e), e);
     }
 
     public void eliminaEsame(Esame e) {
         esami.remove(e);
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        Corso corso = (Corso) o;
+        return corsoDiLaurea.equals(corso.corsoDiLaurea);
+    }
 
+    @Override
+    public int hashCode() {
+        return Objects.hash(corsoDiLaurea);
+    }
 }
