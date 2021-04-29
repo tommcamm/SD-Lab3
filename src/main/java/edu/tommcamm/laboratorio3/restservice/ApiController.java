@@ -3,6 +3,7 @@ package edu.tommcamm.laboratorio3.restservice;
 import edu.tommcamm.laboratorio3.entities.Corso;
 import edu.tommcamm.laboratorio3.entities.Esame;
 import edu.tommcamm.laboratorio3.entities.Universita;
+import edu.tommcamm.laboratorio3.entities.dtos.AjaxResponseBody;
 import edu.tommcamm.laboratorio3.entities.dtos.CorsoDto;
 import edu.tommcamm.laboratorio3.entities.dtos.UniversitaDto;
 import edu.tommcamm.laboratorio3.repositories.UniversitaRepository;
@@ -15,13 +16,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 @RestController
-public class MainController {
+public class ApiController {
 
     UniversitaRepository uniRepo;
 
     // Code Injection per utilizzare la repository dei corsi
     @Autowired
-    public MainController(UniversitaRepository uniRepo) {
+    public ApiController(UniversitaRepository uniRepo) {
         this.uniRepo = uniRepo;
     }
 
@@ -73,36 +74,57 @@ public class MainController {
         return null;
     }
 
+    @GetMapping("/api")
+    public List<Universita> listaUniversita() {
+        List<Universita> uni = new ArrayList<>();
+        uniRepo.findAll().iterator().forEachRemaining(uni::add);
+
+        return uni;
+    }
+
 
     // Creazione di una nuova universita
     @PostMapping("/api")
-    public ResponseEntity<String> addUniversita (@RequestBody UniversitaDto extUniv) {
-        uniRepo.save(new Universita(extUniv.getNome()));
-        return new ResponseEntity<>("OK", HttpStatus.CREATED);
+    public ResponseEntity<?> addUniversita (@RequestBody UniversitaDto extUniv) {
+
+        AjaxResponseBody response = new AjaxResponseBody();
+
+        if(!extUniv.getNome().isEmpty() && uniRepo.findById(extUniv.getNome()).isEmpty()){
+            uniRepo.save(new Universita(extUniv.getNome()));
+            response.setMsg("ok");
+            return ResponseEntity.ok(response);
+        }
+        response.setMsg("already_created");
+        return ResponseEntity.badRequest().body(response);
     }
 
 
     // Creazione di un nuovo corso all'interno di una universita esistente
     @PostMapping(value = "/api/{IDuniversita}/")
-    public ResponseEntity<String> addCorso (@PathVariable String IDuniversita, @RequestBody CorsoDto extCorso) {
+    public ResponseEntity<?> addCorso (@PathVariable String IDuniversita, @RequestBody CorsoDto extCorso) {
         Universita uni = uniRepo.findById(IDuniversita).orElse(null);
+        AjaxResponseBody response = new AjaxResponseBody();
 
-        if(uni != null) {
+        if(uni != null && !uni.getCorsi().contains(new Corso(extCorso.getNome()))) {
             uni.aggiungiCorso(new Corso(extCorso.getNome()));
             uniRepo.save(uni);
-            return new ResponseEntity<>("OK", HttpStatus.CREATED);
+
+            response.setMsg("ok");
+            return ResponseEntity.ok(response);
         }
 
-        return new ResponseEntity<>("Failed", HttpStatus.NOT_FOUND);
+        response.setMsg("invalid_data");
+        return ResponseEntity.badRequest().body(response);
     }
 
 
     // Creazione di un nuovo esame all'interno di un corso localizzato in una universita esistente
     @PostMapping(value = "/api/{IDuniversita}/{IDcorsoDiLaurea}")
-    public ResponseEntity<String> addEsame (@PathVariable String IDuniversita,
+    public ResponseEntity<?> addEsame (@PathVariable String IDuniversita,
                                             @PathVariable String IDcorsoDiLaurea,
                                             @RequestBody Esame extEsame) {
         Universita uni = uniRepo.findById(IDuniversita).orElse(null);
+        AjaxResponseBody response = new AjaxResponseBody();
 
         if (uni != null) {
             Corso cs = uni.getCorsi()
@@ -115,10 +137,14 @@ public class MainController {
                 cs.aggiungiEsame(new Esame(extEsame.getNome(), extEsame.getCfu()));
                 uni.modificaCorso(cs);
                 uniRepo.save(uni);
-                return new ResponseEntity<>("OK", HttpStatus.CREATED);
+
+                response.setMsg("ok");
+                return ResponseEntity.ok(response);
             }
         }
-        return new ResponseEntity<>("Failed", HttpStatus.NOT_FOUND);
+
+        response.setMsg("not_found");
+        return ResponseEntity.badRequest().body(response);
     }
 
     // Modifica CFU di un corso esistente (in una universita esistente)
