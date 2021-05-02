@@ -6,6 +6,7 @@ import edu.tommcamm.laboratorio3.entities.Universita;
 import edu.tommcamm.laboratorio3.entities.dtos.AjaxResponseBody;
 import edu.tommcamm.laboratorio3.entities.dtos.CorsoDto;
 import edu.tommcamm.laboratorio3.entities.dtos.UniversitaDto;
+import edu.tommcamm.laboratorio3.exceptions.ResourceNotFoundException;
 import edu.tommcamm.laboratorio3.repositories.UniversitaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -29,49 +30,29 @@ public class ApiController {
     // Ritorna JSON con corsi di una data universita
     @GetMapping("/api/{IDuniversita}")
     public Universita getUniversita(@PathVariable String IDuniversita) {
-        return uniRepo.findById(IDuniversita).orElse(null);
+        return uniRepo.findById(IDuniversita).orElseThrow(ResourceNotFoundException::new);
     }
 
     // Ritorna JSON con gli esami di un dato corso di una universita
     @GetMapping(value = "/api/{IDuniversita}/{IDcorsoDiLaurea}")
     public Corso getCorso(@PathVariable String IDuniversita, @PathVariable String IDcorsoDiLaurea) {
-        // TODO: return an error (404) if not found
-        Universita uni = uniRepo.findById(IDuniversita).orElse(null);
-
-        if (uni != null) {
-            return uni.getCorsi()
-                    .stream()
-                    .filter(c -> IDcorsoDiLaurea.equals(c.getCorsoDiLaurea()))
-                    .findFirst()
-                    .orElse(null);
-        }
-        return null;
+        return getUniversita(IDuniversita)
+                .getCorsi()
+                .stream()
+                .filter(c -> IDcorsoDiLaurea.equals(c.getCorsoDiLaurea()))
+                .findFirst()
+                .orElseThrow(ResourceNotFoundException::new);
     }
 
     @GetMapping(value = "/api/{IDuniversita}/{IDcorsoDiLaurea}/{esame}")
     public Esame getEsame(@PathVariable String IDuniversita,
                           @PathVariable String IDcorsoDiLaurea,
                           @PathVariable String esame) {
-
-        Universita uni = uniRepo.findById(IDuniversita).orElse(null);
-
-        if (uni != null) {
-            Corso cs = uni.getCorsi()
+        return getCorso(IDuniversita, IDcorsoDiLaurea).getEsami()
                     .stream()
-                    .filter(c -> IDcorsoDiLaurea.equals(c.getCorsoDiLaurea()))
+                    .filter(c -> esame.equals(c.getNome()))
                     .findFirst()
-                    .orElse(null);
-
-            if (cs != null) {
-                return cs.getEsami()
-                        .stream()
-                        .filter(c -> esame.equals(c.getNome()))
-                        .findFirst()
-                        .orElse(null);
-            }
-        }
-        // TODO: return an error (404)
-        return null;
+                    .orElseThrow(ResourceNotFoundException::new);
     }
 
     @GetMapping("/api")
@@ -150,11 +131,12 @@ public class ApiController {
     // Modifica CFU di un corso esistente (in una universita esistente)
     // TODO: Fix spaghetti code and refactor code
     @PutMapping("/api/{IDuniversita}/{IDcorsoDiLaurea}/{esame}")
-    public  ResponseEntity<String> updateCfu(@PathVariable String IDuniversita,
+    public  ResponseEntity<?> updateCfu(@PathVariable String IDuniversita,
                                              @PathVariable String IDcorsoDiLaurea,
                                              @PathVariable String esame,
                                              @RequestParam(name = "CFU") String cfu) {
         Universita uni = uniRepo.findById(IDuniversita).orElse(null);
+        AjaxResponseBody response = new AjaxResponseBody();
 
         if (uni != null) {
             Corso cs = uni.getCorsi()
@@ -175,44 +157,55 @@ public class ApiController {
                     cs.modificaEsame(es);
                     uni.modificaCorso(cs);
                     uniRepo.save(uni);
-                    return new ResponseEntity<>("OK", HttpStatus.CREATED);
+
+                    response.setMsg("ok");
+                    return ResponseEntity.ok(response);
                 }
             }
         }
-        return new ResponseEntity<>("Failed", HttpStatus.OK);
+        response.setMsg("not_found");
+        return ResponseEntity.badRequest().body(response);
     }
 
     // Cancellazione di una universita da id fornito
     @DeleteMapping("/api/{IDuniversita}")
-    public ResponseEntity<String> deleteUniversita (@PathVariable String IDuniversita) {
+    public ResponseEntity<?> deleteUniversita (@PathVariable String IDuniversita) {
         Universita uni = uniRepo.findById(IDuniversita).orElse(null);
+        AjaxResponseBody response = new AjaxResponseBody();
         if (uni != null) {
             uniRepo.delete(uni);
-            return new ResponseEntity<>("OK", HttpStatus.CREATED);
+
+            response.setMsg("ok");
+            return ResponseEntity.ok(response);
         }
-        return new ResponseEntity<>("Failed", HttpStatus.OK);
+        response.setMsg("not_found");
+        return ResponseEntity.badRequest().body(response);
     }
 
     // Cancellazione di un corso in una università
     @DeleteMapping("/api/{IDuniversita}/{IDcorsoDiLaurea}")
-    public ResponseEntity<String> deleteCorso (@PathVariable String IDuniversita,
+    public ResponseEntity<?> deleteCorso (@PathVariable String IDuniversita,
                                                @PathVariable String IDcorsoDiLaurea) {
         Universita uni = uniRepo.findById(IDuniversita).orElse(null);
+        AjaxResponseBody response = new AjaxResponseBody();
         if (uni != null) {
             uni.eliminaCorso(new Corso(IDcorsoDiLaurea));
             uniRepo.save(uni);
-            return new ResponseEntity<>("OK", HttpStatus.OK);
+            response.setMsg("ok");
+            return ResponseEntity.ok(response);
         }
-        return new ResponseEntity<>("Failed", HttpStatus.NOT_FOUND);
+        response.setMsg("not_found");
+        return ResponseEntity.badRequest().body(response);
     }
 
     // Cancellazione di un esame da un corso in una università
     // TODO: Refactor and fix spaghetti code
     @DeleteMapping("/api/{IDuniversita}/{IDcorsoDiLaurea}/{IDesame}")
-    public ResponseEntity<String> deleteEsame (@PathVariable String IDuniversita,
+    public ResponseEntity<?> deleteEsame (@PathVariable String IDuniversita,
                                                @PathVariable String IDcorsoDiLaurea,
                                                @PathVariable String IDesame) {
         Universita uni = uniRepo.findById(IDuniversita).orElse(null);
+        AjaxResponseBody response = new AjaxResponseBody();
         if (uni != null) {
             Corso cs = uni.getCorsi()
                     .stream()
@@ -224,11 +217,14 @@ public class ApiController {
                 cs.eliminaEsame(new Esame(IDesame, 0));
                 uni.modificaCorso(cs);
                 uniRepo.save(uni);
-                return new ResponseEntity<>("OK", HttpStatus.CREATED);
+
+                response.setMsg("ok");
+                return ResponseEntity.ok(response);
             }
 
         }
-        return new ResponseEntity<>("Failed", HttpStatus.OK);
+        response.setMsg("not_found");
+        return ResponseEntity.badRequest().body(response);
     }
 
 }
